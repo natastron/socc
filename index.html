@@ -24,7 +24,7 @@
     <section class="card panel"><h3>3. Список вручную</h3><textarea id="manual" rows="9" style="width:100%;resize:vertical;border:1px solid var(--line);border-radius:10px;padding:10px" placeholder="Иванов Иван\nПетрова Анна\nСидоров Максим"></textarea><button class="btn primary" id="applyManual" style="width:100%;margin-top:10px">Создать матрицу</button></section>
   </aside>
   <main class="content card">
-    <section id="matrix" class="tab active"><div class="head"><div><h2>Матрица выборов</h2><div class="small" id="subtitle">Добавьте участников слева</div></div><div style="display:flex;align-items:center;justify-content:flex-end;gap:14px;flex-wrap:wrap"><div class="matrix-search"><input id="matrixSearch" type="search" placeholder="Поиск по фамилии…" autocomplete="off" aria-label="Поиск участника по фамилии"><button class="btn" id="findPerson" type="button">Найти</button><span class="small search-count" id="searchCount"></span></div><div class="legend"><span><i class="dot green"></i>положительный</span><span><i class="dot red"></i>отрицательный</span></div></div></div><div class="matrix-wrap" id="matrixWrap"><table id="matrixTable"></table></div><div class="toolbar"><button class="btn danger" id="clearBtn">Очистить матрицу</button><button class="btn" id="exportCsv">Экспорт CSV</button></div></section>
+    <section id="matrix" class="tab active"><div class="head"><div><h2>Матрица выборов</h2><div class="small" id="subtitle">Добавьте участников слева</div></div><div style="display:flex;align-items:center;justify-content:flex-end;gap:14px;flex-wrap:wrap"><div class="matrix-search"><input id="matrixSearch" type="search" placeholder="Поиск по фамилии…" autocomplete="off" aria-label="Поиск участника по фамилии"><button class="btn" id="findPerson" type="button">Найти</button><span class="small search-count" id="searchCount"></span></div><div class="legend"><span><i class="dot green"></i>положительный</span><span><i class="dot red"></i>отрицательный</span></div></div></div><div class="matrix-wrap" id="matrixWrap"><table id="matrixTable"></table></div><div class="toolbar"><input class="file" id="projectInput" type="file" accept=".json,application/json" /><label class="btn" for="projectInput">Загрузить проект</label><button class="btn" id="saveProject" type="button">Сохранить проект</button><button class="btn danger" id="clearBtn">Очистить матрицу</button><button class="btn" id="exportCsv">Экспорт CSV</button></div></section>
     <section id="results" class="tab"><div class="head"><div><h2>Результаты</h2><div class="small">Автоматическая классификация по входящим положительным выборам</div></div></div><div class="results"><div class="stats" id="stats"></div><div style="overflow:auto"><table class="res-table"><thead><tr><th>Участник</th><th>Получено +</th><th>Получено −</th><th>Отдано +</th><th>Отдано −</th><th>Статус</th></tr></thead><tbody id="resultsBody"></tbody></table></div><div class="small" style="margin-top:12px">Метод статусов: «звезда» — не менее среднего + 1 стандартного отклонения; «предпочитаемый» — не ниже среднего; «принятый» — имеет положительные выборы ниже среднего; «изолированный» — не получил положительных выборов.</div></div></section>
     <section id="sociogram" class="tab"><div class="head"><div><h2>Социограмма</h2><div class="small">Зелёные связи — положительные, красные пунктирные — отрицательные. Толстая зелёная линия — взаимный положительный выбор.</div></div><button class="btn primary" id="downloadSociogramPdf">Скачать социограмму PDF</button></div><div class="socio"><div class="socio-grid"><div class="graph-card"><svg id="socioSvg" viewBox="0 0 900 620" aria-label="Социограмма"></svg><div class="graph-note">Узлы расположены по окружности; размер узла зависит от количества полученных положительных выборов.</div></div><div class="graph-side"><div class="mini"><h4>Статусы</h4><div class="status-list" id="statusLegend"></div></div><div class="mini"><h4>Сплочённость</h4><div id="cohesionBox"></div></div><div class="mini"><h4>Как читать</h4><div class="small">Стрелка идёт от выбирающего к выбранному. При взаимном положительном выборе показывается одна более толстая зелёная связь между участниками.</div></div></div></div></div></section>
     <section id="report" class="tab"><div class="head"><div><h2>Автоматический отчёт</h2><div class="small">Готов для печати или сохранения в PDF средствами браузера</div></div></div><div class="report-wrap"><div class="printbar"><button class="btn" id="copyReport">Копировать вывод</button><button class="btn" id="printReport">Печать</button><button class="btn primary" id="downloadReportPdf">Скачать отчёт PDF</button></div><article class="report-paper" id="reportPaper"></article></div></section>
@@ -218,10 +218,35 @@ $('#demoBtn').onclick=()=>{init(['Иванов А.','Петрова Б.','Сид
 $$('.nav button').forEach(b=>b.onclick=()=>{$$('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');$$('.tab').forEach(x=>x.classList.remove('active'));$('#'+b.dataset.tab).classList.add('active')});
 $('#fileInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;$('#notice').style.display='none';try{const ext=f.name.split('.').pop().toLowerCase();if(ext==='txt'||ext==='csv'){const txt=await f.text();let lines=txt.split(/\r?\n/);if(ext==='csv') lines=lines.flatMap(x=>x.split(/[;,]/)).map(x=>x.trim());init(lines)}else if((ext==='xlsx'||ext==='xls')&&window.XLSX){const buf=await f.arrayBuffer();const wb=XLSX.read(buf);const sh=wb.Sheets[wb.SheetNames[0]];const arr=XLSX.utils.sheet_to_json(sh,{header:1}).flat().map(String);init(arr)}else{throw new Error('Для XLSX нужен интернет, чтобы загрузить библиотеку чтения Excel. Можно сохранить список как TXT или CSV.')}}catch(err){$('#notice').textContent=err.message;$('#notice').style.display='block'}};
 function download(name,text,type='text/plain'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+function projectData(){return {format:'sociometry-project',version:1,savedAt:new Date().toISOString(),people:[...people],choices:choices.map(row=>[...row]),maxPositive:+$('#maxPos').value||3,maxNegative:+$('#maxNeg').value||3};}
+function restoreProject(data){
+  if(!data||data.format!=='sociometry-project'||!Array.isArray(data.people)||!Array.isArray(data.choices)) throw new Error('Это не файл проекта «Социометрия».');
+  const restoredPeople=cleanNames(data.people); const n=restoredPeople.length;
+  if(!n) throw new Error('В проекте нет участников.');
+  if(restoredPeople.length!==data.people.length||data.choices.length!==n||data.choices.some(row=>!Array.isArray(row)||row.length!==n)) throw new Error('Файл проекта имеет неверную структуру матрицы.');
+  const restoredChoices=data.choices.map((row,r)=>row.map((value,c)=>r===c?0:(value===1?1:value===-1?-1:0)));
+  people=restoredPeople; choices=restoredChoices;
+  $('#maxPos').value=Math.min(5,Math.max(1,Number(data.maxPositive)||3));
+  $('#maxNeg').value=Math.min(5,Math.max(1,Number(data.maxNegative)||3));
+  $('#manual').value=people.join('\n');
+  $('#fileInfo').textContent=`Загружен проект: ${people.length} участников.`;
+  renderAll();
+}
+
 const matrixSearch=$('#matrixSearch');
 if(matrixSearch){matrixSearch.addEventListener('input',()=>updatePersonSearch(false));matrixSearch.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();updatePersonSearch(true)}});}
 $('#findPerson').onclick=()=>updatePersonSearch(true);
 $('#exportCsv').onclick=()=>{if(!people.length)return;const q=s=>'"'+String(s).replace(/"/g,'""')+'"';let rows=[['Кто выбирает',...people].map(q).join(';')];people.forEach((p,r)=>rows.push([p,...choices[r].map(v=>v===1?'+':v===-1?'-':'')].map(q).join(';')));download('sociometry-matrix.csv','\ufeff'+rows.join('\n'),'text/csv;charset=utf-8')};
+$('#saveProject').onclick=()=>{
+  if(!people.length)return alert('Сначала добавьте участников.');
+  const stamp=new Date().toISOString().slice(0,10);
+  download(`sociometry-project-${stamp}.json`,JSON.stringify(projectData(),null,2),'application/json;charset=utf-8');
+};
+$('#projectInput').onchange=async e=>{
+  const file=e.target.files[0]; if(!file)return;
+  try{restoreProject(JSON.parse(await file.text()));}catch(err){alert(`Не удалось загрузить проект: ${err.message}`);}
+  finally{e.target.value='';}
+};
 $('#printReport').onclick=()=>window.print();
 $('#downloadReportPdf').onclick=downloadReportPdf;
 $('#downloadSociogramPdf').onclick=downloadSociogramPdf;
